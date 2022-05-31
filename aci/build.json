@@ -1,0 +1,35 @@
+{
+    "fileSchemaVersion": "1.1.0",
+    "component": {
+        "name": "connectivity-test",
+        "version": "1.0.0"
+    },
+    "buildConfigs": {
+        "platforms": {
+            "docker": {
+                "buildType": "DOCKER",
+                "dependencies": [],
+                "buildStages": [
+                    {
+                        "buildType": "docker",
+                        "config": {
+                            "name": "base",
+                            "Dockerfile": "base.Dockerfile",
+                            "networkAccess": "restricted",
+                            "publish": true
+                        }
+                    },
+                    {
+                        "buildType": "docker",
+                        "config": {
+                            "name": "test",
+                            "Dockerfile": "test.Dockerfile",
+                            "networkAccess": "unrestricted",
+                            "publish": false
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}   
