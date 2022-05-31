@@ -21,8 +21,6 @@ external-build-job:
   stage: external-build
 #  image: docker.io/curlimages/curl
   script:
-    - echo $TEST_PASSWORD
-    - cat $TEST_PASSWORD
     - ls -l $TESTNET_CERT $TESTNET_KEY
     - curl -s -w "%{http_code}\n" -o /dev/null https://www.google.com
     - hostname -i
