@@ -13,8 +13,8 @@
                     {
                         "buildType": "docker",
                         "config": {
-                            "name": "base",
-                            "Dockerfile": "base.Dockerfile",
+                            "name": "test",
+                            "Dockerfile": "test.Dockerfile",
                             "networkAccess": "restricted",
                             "publish": true
                         }
@@ -22,10 +22,10 @@
                     {
                         "buildType": "docker",
                         "config": {
-                            "name": "test",
-                            "Dockerfile": "test.Dockerfile",
-                            "networkAccess": "unrestricted",
-                            "publish": false
+                            "name": "deploy",
+                            "Dockerfile": "dockerfiles/deploy.Dockerfile",
+                            "networkAccess": "restricted",
+                            "publish": true
                         }
                     }
                 ]

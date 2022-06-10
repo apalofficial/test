@@ -11,6 +11,9 @@ build-job:       # This job runs in the build stage, which runs first.
     - echo "Compile complete."
 
 external-build-job:
+  tags:
+    - docker
+    - host_network
   secrets:
     TESTNET_CERT:
       vault: corp/build/gltest-testnet/crt@secret
@@ -19,12 +22,36 @@ external-build-job:
       vault: corp/build/gltest-testnet/key@secret
       file: true
   stage: external-build
-#  image: docker.io/curlimages/curl
+  image: docker.io/curlimages/curl
   script:
     - ls -l $TESTNET_CERT $TESTNET_KEY
     - curl -s -w "%{http_code}\n" -o /dev/null https://www.google.com
-    - hostname -i
-    - bash queue-event.sh
+    - cat /etc/hosts
+    - sh queue-event.sh
+
+scan-job:
+  tags:
+    - docker
+    - host_network
+  secrets:
+    TESTNET_CERT:
+      vault: corp/build/gltest-testnet/crt@secret
+      file: true
+    TESTNET_KEY:
+      vault: corp/build/gltest-testnet/key@secret
+      file: true
+  stage: test
+  image:
+    name: quay.io/skopeo/stable:latest
+    entrypoint: [""]
+  script:
+    - mkdir /tmp/registry-certs
+    - cp $TESTNET_KEY /tmp/registry-certs/user.key
+    - cp $TESTNET_CERT /tmp/registry-certs/user.cert
+    - cat /etc/hosts
+    - skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-cert-dir /tmp/registry-certs --dest-cert-dir /tmp/registry-certs docker://staging.docker.akamai.com:5433/build-images-development/basic_connector/base:0.1-476108f6-e7f5-11ec-b5f8-0242c0a80803 docker://staging.docker.akamai.com:5433/xray-pilot-images/basic_connector/base:0.1-476108f6-e7f5-11ec-b5f8-0242c0a80803
+    - rm -rf /tmp/registry-certs
+    - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/Xray/COMPONENT/STAGE/VERSION-JOBUUID/manifest.json"
 
 unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
@@ -45,4 +72,3 @@ deploy-job:      # This job runs in the deploy stage.
   script:
     - echo "Deploying application..."
     - echo "Application successfully deployed."
-
