@@ -14,7 +14,7 @@
                         "buildType": "docker",
                         "config": {
                             "name": "test",
-                            "Dockerfile": "test.Dockerfile",
+                            "Dockerfile": "dockerfiles/test.Dockerfile",
                             "networkAccess": "restricted",
                             "publish": true
                         }
