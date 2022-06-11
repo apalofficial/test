@@ -1,14 +1,8 @@
-stages:          # List of stages for jobs, and their order of execution
-  - build
+stages:
   - external-build
+  - build-wait
   - test
   - deploy
-
-build-job:       # This job runs in the build stage, which runs first.
-  stage: build
-  script:
-    - echo "Compiling the code..."
-    - echo "Compile complete."
 
 external-build-job:
   tags:
@@ -22,12 +16,37 @@ external-build-job:
       vault: corp/build/gltest-testnet/key@secret
       file: true
   stage: external-build
-  image: docker.io/curlimages/curl
+  image: docker.io/alpine
   script:
+    - apk add --update --no-cache dash openssl jq curl
     - ls -l $TESTNET_CERT $TESTNET_KEY
     - curl -s -w "%{http_code}\n" -o /dev/null https://www.google.com
-    - cat /etc/hosts
-    - sh queue-event.sh
+    - dash queue-event.sh
+    - cat artifacts/event_id.txt
+  artifacts:
+    paths:
+      - artifacts/event_id.txt
+
+wait-for-completion:
+  tags:
+    - docker
+    - host_network
+  stage: build-wait
+  secrets:
+    TESTNET_CERT:
+      vault: corp/build/gltest-testnet/crt@secret
+      file: true
+    TESTNET_KEY:
+      vault: corp/build/gltest-testnet/key@secret
+      file: true
+  image: docker.io/alpine
+  script:
+    - apk add --update --no-cache bash openssl jq curl
+    - bash wait-for-job.sh
+  artifacts:
+    paths:
+      - artifacts/sourcejob_id.txt
+      - artifacts/job_id.txt
 
 scan-job:
   tags:
@@ -45,27 +64,13 @@ scan-job:
     name: quay.io/skopeo/stable:latest
     entrypoint: [""]
   script:
+    - export JOB_ID=$(cat artifacts/job_id.txt)
     - mkdir /tmp/registry-certs
     - cp $TESTNET_KEY /tmp/registry-certs/user.key
     - cp $TESTNET_CERT /tmp/registry-certs/user.cert
-    - cat /etc/hosts
-    - skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-cert-dir /tmp/registry-certs --dest-cert-dir /tmp/registry-certs docker://staging.docker.akamai.com:5433/build-images-development/basic_connector/base:0.1-476108f6-e7f5-11ec-b5f8-0242c0a80803 docker://staging.docker.akamai.com:5433/xray-pilot-images/basic_connector/base:0.1-476108f6-e7f5-11ec-b5f8-0242c0a80803
+    - skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-cert-dir /tmp/registry-certs --dest-cert-dir /tmp/registry-certs "docker://staging.docker.akamai.com:5433/build-images-development/basic_connector/test:0.1-$JOB_ID" "docker://staging.docker.akamai.com:5433/xray-pilot-images/basic_connector/test:0.1-$JOB_ID"
     - rm -rf /tmp/registry-certs
-    - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/Xray/COMPONENT/STAGE/VERSION-JOBUUID/manifest.json"
-
-unit-test-job:   # This job runs in the test stage.
-  stage: test    # It only starts when the job in the build stage completes successfully.
-  script:
-    - echo "Running unit tests... This will take about 2 seconds."
-    - sleep 2
-    - echo "Code coverage is 90%"
-
-lint-test-job:   # This job also runs in the test stage.
-  stage: test    # It can run at the same time as unit-test-job (in parallel).
-  script:
-    - echo "Linting code... This will take about 1 seconds."
-    - sleep 1
-    - echo "No lint issues found."
+    - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/Xray/basic_connector/test/-$JOB_ID/manifest.json"
 
 deploy-job:      # This job runs in the deploy stage.
   stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
