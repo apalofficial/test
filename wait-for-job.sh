@@ -62,8 +62,9 @@ echo "$JOB_ID" > artifacts/job_id.txt
 
 while [[ ( "$jobState" != "DONE" ) && ( $COUNT < $QUITTING_TIME ) ]]
 do
-	jobState=$(bash -c "$JOBS_CURL_CMD" | jq -r '.[0].state')
+	echo "Job is not complete yet. Waiting..."
 	sleep 10
+	jobState=$(bash -c "$JOBS_CURL_CMD" | jq -r '.[0].state')
 	let "COUNT=COUNT+1"
 done
 

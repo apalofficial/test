@@ -70,7 +70,7 @@ scan-job:
     - cp $TESTNET_CERT /tmp/registry-certs/user.cert
     - skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-cert-dir /tmp/registry-certs --dest-cert-dir /tmp/registry-certs "docker://staging.docker.akamai.com:5433/build-images-development/basic_connector/test:0.1-$JOB_ID" "docker://staging.docker.akamai.com:5433/xray-pilot-images/basic_connector/test:0.1-$JOB_ID"
     - rm -rf /tmp/registry-certs
-    - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/Xray/basic_connector/test/-$JOB_ID/manifest.json"
+    - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/Xray/basic_connector/test/0.1-$JOB_ID/manifest.json"
 
 deploy-job:      # This job runs in the deploy stage.
   stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
