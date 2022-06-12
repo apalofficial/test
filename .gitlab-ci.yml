@@ -91,6 +91,7 @@ deploy-ci-job:
   script:
     - echo "Deploying application..."
     - podman system connection add --identity $CI_DEPLOY_KEY hello-ci ssh://ci-user@hello-cd:22222/run/user/1000/podman/podman.sock
-    - podman image scp staging.docker.akamai.com/build-images-development/basic_connector/test:0.1-$JOB_ID "hello-ci::"
+    - >
+      podman image scp staging.docker.akamai.com/build-images-development/basic_connector/test:0.1-$JOB_ID hello-ci::
     - podman --remote stop ci
     - podman --remote run --rm --name ci -d -p 8080:80 staging.docker.akamai.com/build-images-development/basic_connector/test:0.1-$JOB_ID
