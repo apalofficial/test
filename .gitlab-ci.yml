@@ -2,7 +2,8 @@ stages:
   - external-build
   - build-wait
   - test
-  - deploy
+  - qa-deploy
+  - prod-deploy
 
 external-build-job:
   tags:
@@ -74,6 +75,10 @@ scan-job:
     - echo "Scan results will be located at https://staging.repos.akamai.com/ui/repos/tree/General/xray-pilot-images/basic_connector/test/0.1-$JOB_ID/manifest.json"
 
 deploy-ci-job:
+  environment:
+    name: QA
+    url: https://hello-ci.akamai.lol
+  when: manual
   tags:
     - docker
     - host_network
@@ -91,7 +96,7 @@ deploy-ci-job:
     CI_DEPLOY_PUB_KEY:
       vault: corp/build/hello-ci-ed/pub@secret
       file: true
-  stage: deploy
+  stage: qa-deploy
   image:
     name: quay.io/podman/stable:v3.4.4
     entrypoint: [""]
