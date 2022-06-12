@@ -111,3 +111,4 @@ deploy-ci-job:
     - podman --remote stop ci || /bin/true
     - podman --remote run --rm --name ci -d --network=host test:0.1-$JOB_ID
     - podman --remote image prune -fa
+    - echo "Latest deployment is at https://hello-ci.akamai.lol"
