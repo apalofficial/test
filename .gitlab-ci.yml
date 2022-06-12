@@ -16,7 +16,7 @@ stages:
       vault: corp/build/gltest-testnet/key@secret
       file: true
 
-.deploy-connection: &deploy-connection
+.ci-deploy-connection: &ci-deploy-connection
   tags:
     - cap_sys_admin
   secrets:
@@ -26,6 +26,18 @@ stages:
       file: true
     CI_DEPLOY_PUB_KEY:
       vault: corp/build/hello-ci-ed/pub@secret
+      file: true
+
+.cd-deploy-connection: &cd-deploy-connection
+  tags:
+    - cap_sys_admin
+  secrets:
+    <<: *testnet-secrets
+    CI_DEPLOY_KEY:
+      vault: corp/build/hello-cd-ed/key@secret
+      file: true
+    CI_DEPLOY_PUB_KEY:
+      vault: corp/build/hello-cd-ed/pub@secret
       file: true
 
 .external-build-job:
@@ -61,14 +73,32 @@ stages:
     - bash job_scripts/upload-for-scan.sh
 
 deploy-ci-job:
-  <<: *deploy-connection
+  <<: *ci-deploy-connection
   stage: qa-deploy
   environment:
     name: QA
     url: https://hello-ci.akamai.lol
+  image:
+    name: quay.io/podman/stable:v3.4.4
+    entrypoint: [""]
+  variables:
+    PODMAN_USER: "ci-user"
+    PODMAN_UID: "1000"
+  script:
+    - bash job_scripts/deploy.sh
+
+deploy-ci-job:
+  <<: *cd-deploy-connection
+  stage: qa-deploy
+  environment:
+    name: PROD
+    url: https://hello-cd.akamai.lol
   when: manual
   image:
     name: quay.io/podman/stable:v3.4.4
     entrypoint: [""]
+  variables:
+    PODMAN_USER: "cd-user"
+    PODMAN_UID: "1001"
   script:
     - bash job_scripts/deploy.sh
