@@ -8,11 +8,11 @@ stages:
 .sqa-connection: &sqa-connection
   tags:
     - host_network
-  secrets:
-    TESTNET_CERT: &testnet-crt
+  secrets: &testnet-secrets
+    TESTNET_CERT:
       vault: corp/build/gltest-testnet/crt@secret
       file: true
-    TESTNET_KEY: &testnet-key
+    TESTNET_KEY:
       vault: corp/build/gltest-testnet/key@secret
       file: true
 
@@ -20,8 +20,7 @@ stages:
   tags:
     - cap_sys_admin
   secrets:
-    <<: *testnet-crt
-    <<: *testnet-key
+    <<: *testnet-secrets
     CI_DEPLOY_KEY:
       vault: corp/build/hello-ci-ed/key@secret
       file: true
