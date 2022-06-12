@@ -4,7 +4,7 @@ stages:
   - test
   - deploy
 
-.external-build-job:
+external-build-job:
   tags:
     - docker
     - host_network
@@ -27,7 +27,7 @@ stages:
     paths:
       - artifacts/event_id.txt
 
-.wait-for-completion:
+wait-for-completion:
   tags:
     - docker
     - host_network
@@ -48,7 +48,7 @@ stages:
       - artifacts/sourcejob_id.txt
       - artifacts/job_id.txt
 
-.scan-job:
+scan-job:
   tags:
     - docker
     - host_network
@@ -109,5 +109,5 @@ deploy-ci-job:
     - >
             podman image scp test:0.1-$JOB_ID hello-ci::
     - podman --remote stop ci || /bin/true
-    - podman --remote run --rm --name ci -d -p 8080:80 test:0.1-$JOB_ID
+    - podman --remote run --rm --name ci -d --network=host test:0.1-$JOB_ID
     - podman --remote image prune -fa
