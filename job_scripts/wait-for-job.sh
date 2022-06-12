@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -exo pipefail
 
 #TESTNET_CERT=../gltest-testnet.crt
 #TESTNET_KEY=../gltest-testnet.key
@@ -20,7 +20,7 @@ do
 	#sourceJobs=$(cat responses/sourceJob_noevent.txt)
 	#sourceJobs=$(cat responses/sourceJob_nojobyet.txt)
 	#sourceJobs=$(cat responses/sourceJob.txt)
-	echo $sourceJobs
+	#echo $sourceJobs
 	set +e
 	noEvent=$( echo $sourceJobs | jq -r '.["message"]' 2> /dev/null || echo "HAS EVENT")
 	jobId=$(echo $sourceJobs | jq -r '.[0]["jobId"]' 2> /dev/null)
