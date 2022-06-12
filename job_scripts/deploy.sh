@@ -11,6 +11,8 @@ skopeo copy --src-tls-verify=false --src-cert-dir /tmp/registry-certs docker://s
 rm -rf /tmp/registry-certs
 podman system connection add --identity $CI_DEPLOY_KEY hello-ci ssh://$PODMAN_USER@hello-ci.akamai.lol:22222/run/user/$PODMAN_UID/podman/podman.sock
 podman image scp test:0.1-$JOB_ID hello-ci::
-podman --remote stop ci || /bin/true
+set +e
+podman --remote stop ci
+set -e
 podman --remote run --rm --name ci -d --network=host test:0.1-$JOB_ID
 podman --remote image prune -fa
