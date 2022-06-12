@@ -29,7 +29,7 @@ stages:
       vault: corp/build/hello-ci-ed/pub@secret
       file: true
 
-external-build-job:
+.external-build-job:
   <<: *sqa-connection
   stage: external-build
   image: docker.io/alpine
@@ -40,7 +40,7 @@ external-build-job:
     paths:
       - artifacts/event_id.txt
 
-wait-for-completion:
+.wait-for-completion:
   <<: *sqa-connection
   stage: build-wait
   image: docker.io/alpine
@@ -52,7 +52,7 @@ wait-for-completion:
       - artifacts/sourcejob_id.txt
       - artifacts/job_id.txt
 
-scan-job:
+.scan-job:
   <<: *sqa-connection
   stage: test
   image:
