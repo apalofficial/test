@@ -5,9 +5,8 @@ stages:
   - qa-deploy
   - prod-deploy
 
-external-build-job:
+.sqa-connection: &sqa-connection
   tags:
-    - docker
     - host_network
   secrets:
     TESTNET_CERT:
@@ -16,6 +15,20 @@ external-build-job:
     TESTNET_KEY:
       vault: corp/build/gltest-testnet/key@secret
       file: true
+
+.deploy-connection: &deploy-connection
+  tags:
+    - cap_sys_admin
+  secrets:
+    CI_DEPLOY_KEY:
+      vault: corp/build/hello-ci-ed/key@secret
+      file: true
+    CI_DEPLOY_PUB_KEY:
+      vault: corp/build/hello-ci-ed/pub@secret
+      file: true
+
+external-build-job:
+  <<: *sqa-connection
   stage: external-build
   image: docker.io/alpine
   script:
@@ -26,17 +39,8 @@ external-build-job:
       - artifacts/event_id.txt
 
 wait-for-completion:
-  tags:
-    - docker
-    - host_network
+  <<: *sqa-connection
   stage: build-wait
-  secrets:
-    TESTNET_CERT:
-      vault: corp/build/gltest-testnet/crt@secret
-      file: true
-    TESTNET_KEY:
-      vault: corp/build/gltest-testnet/key@secret
-      file: true
   image: docker.io/alpine
   script:
     - apk add --update --no-cache bash openssl jq curl
@@ -47,16 +51,7 @@ wait-for-completion:
       - artifacts/job_id.txt
 
 scan-job:
-  tags:
-    - docker
-    - host_network
-  secrets:
-    TESTNET_CERT:
-      vault: corp/build/gltest-testnet/crt@secret
-      file: true
-    TESTNET_KEY:
-      vault: corp/build/gltest-testnet/key@secret
-      file: true
+  <<: *sqa-connection
   stage: test
   image:
     name: quay.io/skopeo/stable:latest
@@ -65,30 +60,15 @@ scan-job:
     - bash job_scripts/upload-for-scan.sh
 
 deploy-ci-job:
+  <<: *sqa-connection
+  <<: *deploy-connection
+  stage: qa-deploy
   environment:
     name: QA
     url: https://hello-ci.akamai.lol
   when: manual
-  tags:
-    - docker
-    - host_network
-    - cap_sys_admin
-  secrets:
-    TESTNET_CERT:
-      vault: corp/build/gltest-testnet/crt@secret
-      file: true
-    TESTNET_KEY:
-      vault: corp/build/gltest-testnet/key@secret
-      file: true
-    CI_DEPLOY_KEY:
-      vault: corp/build/hello-ci-ed/key@secret
-      file: true
-    CI_DEPLOY_PUB_KEY:
-      vault: corp/build/hello-ci-ed/pub@secret
-      file: true
-  stage: qa-deploy
   image:
     name: quay.io/podman/stable:v3.4.4
     entrypoint: [""]
   script:
-    - job_scripts/deploy.sh
+    - bash job_scripts/deploy.sh
