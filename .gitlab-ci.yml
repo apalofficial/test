@@ -1,5 +1,5 @@
 stages:
-  - external-build
+  - build
   - build-wait
   - test
   - qa-deploy
@@ -26,7 +26,6 @@ stages:
 .ci-deploy-connection: &ci-deploy-connection
   <<: *deploy-common
   secrets:
-    <<: *testnet-secrets
     CI_DEPLOY_KEY:
       vault: corp/build/hello-ci-ed/key@secret
       file: true
@@ -47,7 +46,7 @@ stages:
 
 external-build-job:
   <<: *sqa-connection
-  stage: external-build
+  stage: build
   image: docker.io/alpine
   script:
     - apk add --update --no-cache dash openssl jq curl
@@ -55,6 +54,21 @@ external-build-job:
   artifacts:
     paths:
       - artifacts/event_id.txt
+
+podman-build-job:
+  image: 
+    name: quay.io/podman/stable:latest
+  stage: build
+  tags:
+    - privileged
+  variables:
+    BUILDAH_ISOLATION: chroot
+  before_script:
+    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - podman build --build-arg REGISTRY=docker.io --build-arg jobId=${CI_COMMIT_SHA} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/test.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 wait-for-completion:
   <<: *sqa-connection
@@ -80,6 +94,7 @@ scan-job:
 deploy-ci-job:
   <<: *ci-deploy-connection
   stage: qa-deploy
+  needs: podman-build-job
   environment:
     name: QA
     url: https://hello-ci.akamai.lol
@@ -87,7 +102,13 @@ deploy-ci-job:
     PODMAN_USER: "ci-user"
     PODMAN_UID: "1000"
     IMAGE: "test"
+  before_script:
+    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
+    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA staging.docker.akamai.com/build-images-development/basic_connector/$IMAGE:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
 deploy-cd-job:
