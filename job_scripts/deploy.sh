@@ -14,5 +14,5 @@ podman image scp staging.docker.akamai.com/build-images-development/basic_connec
 set +e
 podman --remote stop ci
 set -e
-podman --remote run --rm --name ci -d --network=host test:0.1-$JOB_ID
+podman --remote run --rm --name ci -d --network=host staging.docker.akamai.com/build-images-development/basic_connector/test:0.1-$JOB_ID
 podman --remote image prune -fa

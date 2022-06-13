@@ -16,9 +16,15 @@ stages:
       vault: corp/build/gltest-testnet/key@secret
       file: true
 
-.ci-deploy-connection: &ci-deploy-connection
+.deploy-common: &deploy-common
+  image:
+    name: quay.io/podman/stable:v3.4.4
+    entrypoint: [""]
   tags:
     - cap_sys_admin
+
+.ci-deploy-connection: &ci-deploy-connection
+  <<: *deploy-common
   secrets:
     <<: *testnet-secrets
     CI_DEPLOY_KEY:
@@ -29,8 +35,7 @@ stages:
       file: true
 
 .cd-deploy-connection: &cd-deploy-connection
-  tags:
-    - cap_sys_admin
+  <<: *deploy-common
   secrets:
     <<: *testnet-secrets
     CI_DEPLOY_KEY:
@@ -78,9 +83,6 @@ deploy-ci-job:
   environment:
     name: QA
     url: https://hello-ci.akamai.lol
-  image:
-    name: quay.io/podman/stable:v3.4.4
-    entrypoint: [""]
   variables:
     PODMAN_USER: "ci-user"
     PODMAN_UID: "1000"
@@ -94,9 +96,6 @@ deploy-cd-job:
     name: PROD
     url: https://hello-cd.akamai.lol
   when: manual
-  image:
-    name: quay.io/podman/stable:v3.4.4
-    entrypoint: [""]
   variables:
     PODMAN_USER: "cd-user"
     PODMAN_UID: "1001"
