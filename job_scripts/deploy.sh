@@ -2,8 +2,8 @@
 set -exo pipefail
 echo "Deploying application..."
 dnf -y install skopeo #required for image pull at non-standard port
-#export JOB_ID=$(cat artifacts/job_id.txt)
-export JOB_ID=9d9be53a-eaaf-11ec-ade4-0242c0a8080e
+export JOB_ID=$(cat artifacts/job_id.txt)
+#export JOB_ID=9d9be53a-eaaf-11ec-ade4-0242c0a8080e
 mkdir /tmp/registry-certs
 cp $TESTNET_KEY /tmp/registry-certs/user.key
 cp $TESTNET_CERT /tmp/registry-certs/user.cert
