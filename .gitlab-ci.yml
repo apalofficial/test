@@ -44,7 +44,7 @@ stages:
       vault: corp/build/hello-cd-ed/pub@secret
       file: true
 
-external-build-job:
+.external-build-job:
   <<: *sqa-connection
   stage: build
   image: docker.io/alpine
@@ -70,7 +70,7 @@ podman-build-job:
     - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
-wait-for-completion:
+.wait-for-completion:
   <<: *sqa-connection
   stage: build-wait
   image: docker.io/alpine
@@ -82,7 +82,7 @@ wait-for-completion:
       - artifacts/sourcejob_id.txt
       - artifacts/job_id.txt
 
-scan-job:
+.scan-job:
   <<: *sqa-connection
   stage: test
   image:
@@ -111,7 +111,7 @@ deploy-ci-job:
     - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA staging.docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
-deploy-cd-job:
+.deploy-cd-job:
   <<: *cd-deploy-connection
   stage: prod-deploy
   environment:
