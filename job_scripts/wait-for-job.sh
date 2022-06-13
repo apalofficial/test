@@ -14,6 +14,7 @@ echo -e "curl cmd is:\n$SOURCEJOB_CURL_CMD"
 QUITTING_TIME=60
 
 SOURCE_JOB_ID=0
+set +x
 while [ $SOURCE_JOB_ID -lt $QUITTING_TIME 2> /dev/null ]
 do
 	sourceJobs=$(bash -c "$SOURCEJOB_CURL_CMD")
@@ -37,6 +38,7 @@ do
 		SOURCE_JOB_ID=$jobId
 	fi
 done
+set -x
 
 if [[ $SOURCE_JOB_ID =~ ^-?[0-9]+$ ]]; then
 	echo "ERROR - Job was never queued for event ${EVENT_ID}"
@@ -60,6 +62,7 @@ JOB_ID=$(echo "$job" | jq -r '.[0].jobId')
 
 echo "$JOB_ID" > artifacts/job_id.txt
 
+set +x
 while [[ ( "$jobState" != "DONE" ) && ( $COUNT < $QUITTING_TIME ) ]]
 do
 	echo "Job is not complete yet. Waiting..."
