@@ -67,7 +67,7 @@ podman-build-job:
     - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
     - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - podman build --build-arg REGISTRY=docker.io --build-arg jobId=${CI_COMMIT_SHA} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/test.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - podman build --build-arg LISTEN_PORT=8081 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 wait-for-completion:
@@ -102,12 +102,11 @@ deploy-ci-job:
   variables:
     PODMAN_USER: "ci-user"
     PODMAN_UID: "1000"
-    IMAGE: "test"
   before_script:
     - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
     - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - export JOB_ID=$CI_JOB_ID
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA staging.docker.akamai.com/build-images-development/basic_connector/$IMAGE:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
@@ -122,6 +121,7 @@ deploy-cd-job:
   variables:
     PODMAN_USER: "cd-user"
     PODMAN_UID: "1001"
-    IMAGE: "deploy"
   script:
+    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - bash job_scripts/pull-from-artifactory.sh
     - bash job_scripts/deploy.sh
