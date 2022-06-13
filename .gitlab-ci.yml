@@ -94,7 +94,8 @@ scan-job:
 deploy-ci-job:
   <<: *ci-deploy-connection
   stage: qa-deploy
-  needs: podman-build-job
+  needs: 
+    - job: podman-build-job
   environment:
     name: QA
     url: https://hello-ci.akamai.lol
