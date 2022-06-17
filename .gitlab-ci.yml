@@ -14,9 +14,6 @@ stages:
     TESTNET_KEY:
       vault: corp/build/gltest-testnet/key@secret
       file: true
-    TESTNET_CA_CRT:
-      vault: corp/build/gltest-testnet/ca@secret
-      file: true
 
 .deploy-common: &deploy-common
   image:
