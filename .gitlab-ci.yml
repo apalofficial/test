@@ -114,6 +114,7 @@ deploy-cd-job:
     url: https://hello-cd.akamai.lol
   when: manual
   needs:
+    - job: wait-for-completion
     - job: scan-job
   variables:
     PODMAN_USER: "cd-user"
