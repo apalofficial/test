@@ -17,8 +17,8 @@ stages:
   image:
     name: quay.io/podman/stable:v3.4.4
     entrypoint: [""]
-#  tags:
-#    - cap_sys_admin
+  tags:
+    - cap_sys_admin
 
 .ci-deploy-connection: &ci-deploy-connection
   <<: *deploy-common
@@ -50,8 +50,9 @@ podman-build-job:
   image: 
     name: quay.io/podman/stable:latest
   stage: build
-#  tags:
-#    - privileged
+  tags:
+    - cap_sys_admin
+    - dev_fuse
   variables:
     BUILDAH_ISOLATION: chroot
   before_script:
