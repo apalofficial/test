@@ -9,10 +9,10 @@ stages:
     - host_network
   secrets: &testnet-secrets
     TESTNET_CERT:
-      vault: corp/build/gltest-testnet/crt@secret
+      vault: corp/build/bbodiya/crt@secret
       file: true
     TESTNET_KEY:
-      vault: corp/build/gltest-testnet/key@secret
+      vault: corp/build/bbodiya/key@secret
       file: true
 
 .deploy-common: &deploy-common
@@ -28,9 +28,6 @@ stages:
     CI_DEPLOY_KEY:
       vault: corp/build/hello-ci-ed/key@secret
       file: true
-    CI_DEPLOY_PUB_KEY:
-      vault: corp/build/hello-ci-ed/pub@secret
-      file: true
 
 .cd-deploy-connection: &cd-deploy-connection
   <<: *deploy-common
@@ -38,9 +35,6 @@ stages:
     <<: *testnet-secrets
     CI_DEPLOY_KEY:
       vault: corp/build/hello-cd-ed/key@secret
-      file: true
-    CI_DEPLOY_PUB_KEY:
-      vault: corp/build/hello-cd-ed/pub@secret
       file: true
 
 external-build-job:

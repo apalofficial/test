@@ -6,7 +6,7 @@ set -exo pipefail
 EVENT_ID=$(cat artifacts/event_id.txt)
 echo "Event ID is: $EVENT_ID"
 
-SOURCEJOB_CURL_CMD="curl -s --cert $TESTNET_CERT --key $TESTNET_KEY --insecure https://aci-results-api.default.hh.appbattery.shared.qa.akamai.com:5333/v1/events/${EVENT_ID}/sourceJobs"
+SOURCEJOB_CURL_CMD="curl -s --cert $TESTNET_CERT --key $TESTNET_KEY --insecure https://aci-results-api.a.dmz.appbattery.akadns.net/v1/events/${EVENT_ID}/sourceJobs"
 
 echo -e "curl cmd is:\n$SOURCEJOB_CURL_CMD"
 
@@ -50,7 +50,7 @@ echo "$SOURCE_JOB_ID" > artifacts/sourcejob_id.txt
 
 # Begin Job Wait Section
 
-JOBS_CURL_CMD="curl -s --cert $TESTNET_CERT --key $TESTNET_KEY --insecure https://aci-results-api.default.hh.appbattery.shared.qa.akamai.com:5333/v1/sourceJobs/$SOURCE_JOB_ID/jobs"
+JOBS_CURL_CMD="curl -s --cert $TESTNET_CERT --key $TESTNET_KEY --insecure https://aci-results-api.a.dmz.appbattery.akadns.net/v1/sourceJobs/$SOURCE_JOB_ID/jobs"
 
 echo -e "curl cmd is:\n$JOBS_CURL_CMD"
 

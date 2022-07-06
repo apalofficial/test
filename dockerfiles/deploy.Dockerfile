@@ -1,4 +1,4 @@
-ARG REGISTRY=staging.docker.akamai.com/images
+ARG REGISTRY=docker.akamai.com/images
 FROM ${REGISTRY}/nginx
 ARG component=.
 ARG jobId=none
