@@ -103,7 +103,7 @@ deploy-ci-job:
   script:
     - export JOB_ID=$CI_JOB_ID
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA staging.docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
+    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
 deploy-cd-job:
