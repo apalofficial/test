@@ -4,6 +4,11 @@ stages:
   - test
   - deploy
 
+.project-registry-login: &project-registry-login
+  before_script:
+    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
 .sqa-connection: &sqa-connection
   secrets: &testnet-secrets
     TESTNET_CERT:
@@ -20,14 +25,14 @@ stages:
   tags:
     - cap_sys_admin
 
-.ci-deploy-connection: &ci-deploy-connection
+.linode-QA-deploy: &linode-QA-deploy-connection
   <<: *deploy-common
   secrets:
     CI_DEPLOY_KEY:
       vault: corp/build/hello-ci-ed/key@secret
       file: true
 
-.cd-deploy-connection: &cd-deploy-connection
+.linode-PROD-deploy: &linode-PROD-deploy-connection
   <<: *deploy-common
   secrets:
     <<: *testnet-secrets
@@ -35,7 +40,17 @@ stages:
       vault: corp/build/hello-cd-ed/key@secret
       file: true
 
-external-build-job:
+.k8s-QA-deploy-connection: &k8s-QA-deploy-connection
+  <<: *deploy-common
+  secrets:
+    K8S_REGISTRY_USER:
+      vault: corp/build/k8s-registry/user@secret
+      file: false
+    K8S_REGISTRY_PASSWORD:
+      vault: corp/build/k8s-registry/password@secret
+      file: false
+
+.external-build-job:
   <<: *sqa-connection
   stage: build
   image: docker.io/alpine
@@ -55,14 +70,12 @@ podman-build-job:
     - dev_fuse
   variables:
     BUILDAH_ISOLATION: chroot
-  before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  <<: *project-registry-login
   script:
     - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
-wait-for-completion:
+.wait-for-completion:
   <<: *sqa-connection
   stage: build-wait
   needs:
@@ -76,7 +89,7 @@ wait-for-completion:
       - artifacts/sourcejob_id.txt
       - artifacts/job_id.txt
 
-scan-job:
+.scan-job:
   <<: *sqa-connection
   stage: test
   needs:
@@ -87,31 +100,29 @@ scan-job:
   script:
     - bash job_scripts/upload-for-scan.sh
 
-deploy-ci-job:
-  <<: *ci-deploy-connection
+linode-QA-deploy:
+  <<: *linode-QA-deploy-connection
   stage: deploy
   needs:
     - job: podman-build-job
   environment:
-    name: QA
+    name: Linode-QA
     url: https://hello-ci.akamai.lol
   variables:
     PODMAN_USER: "ci-user"
     PODMAN_UID: "1000"
-  before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  <<: *project-registry-login
   script:
     - export JOB_ID=$CI_JOB_ID
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
-deploy-cd-job:
-  <<: *cd-deploy-connection
+.linode-PROD-deploy:
+  <<: *linode-PROD-deploy-connection
   stage: deploy
   environment:
-    name: PROD
+    name: Linode-PROD
     url: https://hello-cd.akamai.lol
   when: manual
   needs:
@@ -124,3 +135,20 @@ deploy-cd-job:
     - export JOB_ID=$(cat artifacts/job_id.txt)
     - bash job_scripts/pull-from-artifactory.sh
     - bash job_scripts/deploy.sh
+
+k8s-QA-deploy:
+  <<: *k8s-QA-deploy-connection
+  stage: deploy
+  environment:
+    name: LKE-QA
+    url: https://k8s-qa.linode.lol
+  needs:
+    - job: podman-build-job
+  before_script:
+    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  script:
+    - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA registry.linode.lol/basic_connector/image:0.1-$CI_JOB_ID
+    - podman push registry.linode.lol/basic_connector/image:0.1-$CI_JOB_ID
