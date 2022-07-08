@@ -49,6 +49,9 @@ stages:
     K8S_REGISTRY_PASSWORD:
       vault: corp/build/k8s-registry/password@secret
       file: false
+    K8S_KUBECONFIG:
+      vault: corp/build/k8s-qa/kubeconfig@secret
+      file: true
 
 .external-build-job:
   <<: *sqa-connection
@@ -150,5 +153,12 @@ k8s-QA-deploy:
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA registry.linode.lol/basic_connector/image:0.1-$CI_JOB_ID
-    - podman push registry.linode.lol/basic_connector/image:0.1-$CI_JOB_ID
+    - export REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$CI_JOB_ID"
+    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $REGISTRY_IMAGE
+    - podman push $REGISTRY_IMAGE
+    - podman run --rm --env KUBECONFIG=$K8S_KUBECONFIG -v $PWD:/workspace --workdir /workspace docker.io/rancher/kubectl:v1.23.7 get deployment k8s-qa -o yaml --namespace gitlab > artifacts/qa-deployment.yaml
+    - sed -i -- "s/\(- image: \).*/\1$REGISTRY_IMAGE/" artifacts/qa-deployment.yaml
+    - podman run --rm --env KUBECONFIG=$K8S_KUBECONFIG -v $PWD:/workspace --workdir /workspace docker.io/rancher/kubectl:v1.23.7 apply -f artifacts/qa-deployment.yaml
+  artifacts:
+    paths:
+      - artifacts/qa-deployment.yaml
