@@ -155,4 +155,4 @@ k8s-QA-deploy:
     - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
-    - bash job_scripts/deploy.sh
+    - bash job_scripts/k8s_deploy.sh
