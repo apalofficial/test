@@ -2,6 +2,7 @@ stages:
   - build
   - build-wait
   - test
+  - artifact-promote
   - deploy
 
 .project-registry-login: &project-registry-login
@@ -53,7 +54,15 @@ stages:
       vault: corp/build/k8s-qa/kubeconfig@secret
       file: true
 
-.external-build-job:
+.k8s-PROD-deploy-connection: &k8s-PROD-deploy-connection
+  <<: *deploy-common
+  secrets:
+    <<: *testnet-secrets
+    K8S_KUBECONFIG:
+      vault: corp/build/k8s-prod/kubeconfig@secret
+      file: true
+
+external-build-job:
   <<: *sqa-connection
   stage: build
   image: docker.io/alpine
@@ -78,7 +87,7 @@ podman-build-job:
     - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
-.wait-for-completion:
+wait-for-completion:
   <<: *sqa-connection
   stage: build-wait
   needs:
@@ -92,7 +101,7 @@ podman-build-job:
       - artifacts/sourcejob_id.txt
       - artifacts/job_id.txt
 
-.scan-job:
+scan-job:
   <<: *sqa-connection
   stage: test
   needs:
@@ -102,6 +111,67 @@ podman-build-job:
     entrypoint: [""]
   script:
     - bash job_scripts/upload-for-scan.sh
+
+prod-upload-to-artifactory:
+  stage: artifact-promote
+  needs:
+    - job: scan-job
+    - job: wait-for-completion
+  script:
+    - echo pass
+
+qa-upload-to-artifactory:
+  <<: *deploy-common
+  <<: *sqa-connection
+  stage: artifact-promote
+  needs:
+    - job: podman-build-job
+  <<: *project-registry-login
+  script:
+    - bash job_scripts/qa-edge-deploy.sh
+
+linode-PROD-deploy:
+  <<: *linode-PROD-deploy-connection
+  stage: deploy
+  environment:
+    name: Linode-PROD
+    url: https://hello-cd.akamai.lol
+  when: manual
+  needs:
+    - job: wait-for-completion
+    - job: scan-job
+  variables:
+    PODMAN_USER: "cd-user"
+    PODMAN_UID: "1001"
+  script:
+    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - bash job_scripts/pull-from-artifactory.sh
+    - bash job_scripts/deploy.sh
+
+k8s-PROD-deploy:
+  <<: *k8s-PROD-deploy-connection
+  stage: deploy
+  environment:
+    name: LKE-PROD
+    url: https://k8s-prod.linode.lol
+  needs:
+    - job: wait-for-completion
+    - job: scan-job
+#  artifacts:
+#    paths:
+#      - artifacts/prod-deployment.yaml
+  before_script:
+    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  script:
+    - echo pass
+k8s-edge-QA-deploy:
+  stage: deploy
+  needs:
+    - qa-upload-to-artifactory
+  script:
+    - echo pass
 
 linode-QA-deploy:
   <<: *linode-QA-deploy-connection
@@ -121,24 +191,6 @@ linode-QA-deploy:
     - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
-.linode-PROD-deploy:
-  <<: *linode-PROD-deploy-connection
-  stage: deploy
-  environment:
-    name: Linode-PROD
-    url: https://hello-cd.akamai.lol
-  when: manual
-  needs:
-    - job: wait-for-completion
-    - job: scan-job
-  variables:
-    PODMAN_USER: "cd-user"
-    PODMAN_UID: "1001"
-  script:
-    - export JOB_ID=$(cat artifacts/job_id.txt)
-    - bash job_scripts/pull-from-artifactory.sh
-    - bash job_scripts/deploy.sh
-
 k8s-QA-deploy:
   <<: *k8s-QA-deploy-connection
   stage: deploy
@@ -156,13 +208,3 @@ k8s-QA-deploy:
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - bash job_scripts/k8s_deploy.sh
-
-upload-to-artifactory-qa:
-  <<: *deploy-common
-  <<: *sqa-connection
-  stage: test
-  needs:
-    - job: podman-build-job
-  <<: *project-registry-login
-  script:
-    - bash job_scripts/qa-edge-deploy.sh
