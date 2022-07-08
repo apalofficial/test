@@ -32,7 +32,7 @@ stages:
       vault: corp/build/hello-ci-ed/key@secret
       file: true
 
-.linode-PROD-deploy: &linode-PROD-deploy-connection
+.linode-PROD-deploy-connection: &linode-PROD-deploy-connection
   <<: *deploy-common
   secrets:
     <<: *testnet-secrets
@@ -155,7 +155,7 @@ k8s-QA-deploy:
     - bash job_scripts/k8s_deploy.sh
 
 upload-to-artifactory-qa:
-  <<: *deploy_common
+  <<: *deploy-common
   <<: *sqa-connection
   stage: test
   needs:
