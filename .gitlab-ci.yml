@@ -164,15 +164,14 @@ k8s-PROD-deploy:
   needs:
     - job: wait-for-completion
     - job: scan-job
-#  artifacts:
-#    paths:
-#      - artifacts/prod-deployment.yaml
-  before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  variables:
+    K8S_ENV: prod
+  artifacts:
+    paths:
+      - artifacts/prod-deployment.yaml
   script:
-    - echo pass
+    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - bash job_scripts/k8s_deploy.sh
 
 k8s-edge-QA-deploy:
   stage: deploy
@@ -210,9 +209,12 @@ k8s-QA-deploy:
   artifacts:
     paths:
       - artifacts/qa-deployment.yaml
+  variables:
+    K8S_ENV: qa
   before_script:
     - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
     - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
+    - export JOB_ID=$CI_JOB_ID
     - bash job_scripts/k8s_deploy.sh
