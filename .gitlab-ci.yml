@@ -130,6 +130,13 @@ qa-upload-to-artifactory:
   script:
     - bash job_scripts/qa-edge-deploy.sh
 
+k8s-edge-PROD-deploy:
+  stage: deploy
+  needs:
+    - prod-upload-to-artifactory
+  script:
+    - echo pass
+
 linode-PROD-deploy:
   <<: *linode-PROD-deploy-connection
   stage: deploy
@@ -166,6 +173,7 @@ k8s-PROD-deploy:
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - echo pass
+
 k8s-edge-QA-deploy:
   stage: deploy
   needs:
