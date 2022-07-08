@@ -150,9 +150,26 @@ k8s-QA-deploy:
   artifacts:
     paths:
       - artifacts/qa-deployment.yaml
-  before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  <<: *project-registry-login
   script:
     - bash job_scripts/k8s_deploy.sh
+
+upload-to-artifactory-qa:
+  <<: *deploy_common
+  <<: *sqa-connection
+  stage: test
+  needs:
+    - job: podman-build-job
+  script:
+    - bash job_scripts/qa-edge-deploy.sh
+
+.upload-to-artifactory-prod:
+  <<: *sqa-connection
+  stage: test
+  needs:
+    - job: wait-for-completion
+  image:
+    name: quay.io/skopeo/stable:latest
+    entrypoint: [""]
+  script:
+    - echo pass

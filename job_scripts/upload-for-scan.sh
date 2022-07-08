@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 set -exo pipefail
 export JOB_ID=$(cat artifacts/job_id.txt)
 echo "Scanning image for Job ID $JOB_ID"
