@@ -171,6 +171,7 @@ k8s-PROD-deploy:
       - artifacts/prod-deployment.yaml
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
+    - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/k8s_deploy.sh
 
 k8s-edge-QA-deploy:
@@ -217,4 +218,5 @@ k8s-QA-deploy:
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - export JOB_ID=$CI_JOB_ID
+    - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - bash job_scripts/k8s_deploy.sh

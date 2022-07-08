@@ -1,10 +1,10 @@
 set -exo pipefail
 echo "Deploying application..."
 
-podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+podman pull $SOURCE_IMAGE
 REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$JOB_ID"
 
-podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $REGISTRY_IMAGE
+podman tag $SOURCE_IMAGE $REGISTRY_IMAGE
 podman push $REGISTRY_IMAGE
 mkdir artifacts
 KUBECONFIG_DIR=$(dirname $K8S_KUBECONFIG)
