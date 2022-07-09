@@ -152,7 +152,7 @@ linode-PROD-deploy:
     PODMAN_UID: "1001"
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
-    - podman pull --tls-verify=false --cert-dir $(dirname "$TESTNET_KEY") docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
+    - bash job_script/pull-from-artifactory.sh
     - bash job_scripts/deploy.sh
 
 k8s-PROD-deploy:
