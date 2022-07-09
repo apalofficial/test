@@ -134,6 +134,7 @@ k8s-edge-PROD-deploy:
   stage: deploy
   needs:
     - prod-upload-to-artifactory
+  when: manual
   script:
     - echo pass
 
@@ -152,7 +153,7 @@ linode-PROD-deploy:
     PODMAN_UID: "1001"
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
-    - bash job_script/pull-from-artifactory.sh
+    - bash job_scripts/pull-from-artifactory.sh
     - bash job_scripts/deploy.sh
 
 k8s-PROD-deploy:
