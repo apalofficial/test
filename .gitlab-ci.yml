@@ -26,7 +26,7 @@ stages:
   tags:
     - cap_sys_admin
 
-.linode-QA-deploy: &linode-QA-deploy-connection
+.linode-QA-deploy-connection: &linode-QA-deploy-connection
   <<: *deploy-common
   secrets:
     CI_DEPLOY_KEY:
@@ -152,7 +152,7 @@ linode-PROD-deploy:
     PODMAN_UID: "1001"
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
-    - bash job_scripts/pull-from-artifactory.sh
+    - podman pull --tls-verify=false --cert-dir $(dirname "$TESTNET_KEY") docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
     - bash job_scripts/deploy.sh
 
 k8s-PROD-deploy:
@@ -161,6 +161,7 @@ k8s-PROD-deploy:
   environment:
     name: LKE-PROD
     url: https://k8s-prod.linode.lol
+  when: manual
   needs:
     - job: wait-for-completion
     - job: scan-job
