@@ -1,6 +1,6 @@
 #!/bin/bash
 set -exo pipefail
-echo "Deploying application..."
+echo "Pulling image..."
 mkdir /tmp/registry-certs
 cp $TESTNET_KEY /tmp/registry-certs/user.key
 cp $TESTNET_CERT /tmp/registry-certs/user.cert

@@ -1,7 +1,6 @@
 set -exo pipefail
 echo "Deploying application..."
 
-podman pull $SOURCE_IMAGE
 REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$JOB_ID"
 
 podman tag $SOURCE_IMAGE $REGISTRY_IMAGE

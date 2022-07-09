@@ -173,6 +173,7 @@ k8s-PROD-deploy:
       - artifacts/prod-deployment.yaml
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
+    - bash job_scripts/pull-from-artifactory.sh
     - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/k8s_deploy.sh
 
@@ -221,4 +222,5 @@ k8s-QA-deploy:
   script:
     - export JOB_ID=$CI_JOB_ID
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - podman pull $SOURCE_IMAGE
     - bash job_scripts/k8s_deploy.sh
