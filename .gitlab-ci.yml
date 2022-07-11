@@ -151,8 +151,10 @@ k8s-PROD-deploy:
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
     - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
+    - export REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/pull-from-artifactory.sh
-    - bash job_scripts/k8s_deploy.sh
+    - bash job_scripts/k8s-deploy.sh
+    - bash job_scripts/k8s-config-apply.sh
 
 k8s-edge-QA-deploy:
   extends: .deploy-common
@@ -213,5 +215,7 @@ k8s-QA-deploy:
   script:
     - export JOB_ID=$CI_PIPELINE_IID
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - export REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$JOB_ID"
     - podman pull $SOURCE_IMAGE
-    - bash job_scripts/k8s_deploy.sh
+    - bash job_scripts/k8s-deploy.sh
+    - bash job_scripts/k8s-config-apply.sh
