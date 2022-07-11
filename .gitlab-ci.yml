@@ -8,7 +8,8 @@ stages:
 include: '/.gitlab-ci/secrets.yml'
 
 external-build-job:
-  <<: *sqa-connection
+  secrets:
+  - !reference [.sqa-connection, secrets]
   stage: build
   image: docker.io/alpine
   script:
@@ -27,13 +28,15 @@ podman-build-job:
     - dev_fuse
   variables:
     BUILDAH_ISOLATION: chroot
-  <<: *project-registry-login
+  before_script:
+  - !reference [.project-registry-login, before_script]
   script:
     - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 wait-for-completion:
-  <<: *sqa-connection
+  secrets:
+  - !reference [.sqa-connection, secrets]
   stage: build-wait
   needs:
     - job: external-build-job
@@ -47,7 +50,8 @@ wait-for-completion:
       - artifacts/job_id.txt
 
 scan-job:
-  <<: *sqa-connection
+  secrets:
+  - !reference [.sqa-connection, secrets]
   stage: test
   needs:
     - job: wait-for-completion
@@ -58,8 +62,9 @@ scan-job:
     - bash job_scripts/upload-for-scan.sh
 
 prod-upload-to-artifactory:
-  <<: *deploy-common
-  <<: *sqa-connection
+  extends .deploy-common
+  secrets:
+  - !reference [.sqa-connection, secrets]
   stage: artifact-promote
   needs:
     - job: scan-job
@@ -73,14 +78,16 @@ prod-upload-to-artifactory:
     - bash job_scripts/release-to-edge.sh
 
 qa-upload-to-artifactory:
-  <<: *deploy-common
-  <<: *sqa-connection
+  extends .deploy-common
+  secrets:
+  - !reference [.sqa-connection, secrets]
   stage: artifact-promote
   needs:
     - job: podman-build-job
   variables:
     K8S_ENV: qa
-  <<: *project-registry-login
+  before_script:
+  - !reference [.project-registry-login, before_script]
   script:
     - export JOB_ID=$CI_JOB_ID
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
@@ -88,6 +95,7 @@ qa-upload-to-artifactory:
     - bash job_scripts/release-to-edge.sh
 
 k8s-edge-PROD-deploy:
+  extends .deploy-common
   stage: deploy
   needs:
     - prod-upload-to-artifactory
@@ -96,7 +104,9 @@ k8s-edge-PROD-deploy:
     - echo pass
 
 linode-PROD-deploy:
-  <<: *linode-PROD-deploy-connection
+  extends .deploy-common
+  secrets:
+    - !reference [.linode-PROD-deploy-connection, secrets]
   stage: deploy
   environment:
     name: Linode-PROD
@@ -115,7 +125,9 @@ linode-PROD-deploy:
     - bash job_scripts/deploy.sh
 
 k8s-PROD-deploy:
-  <<: *k8s-PROD-deploy-connection
+  extends .deploy-common
+  secrets:
+    - !reference [.k8s-PROD-deploy-connection, secrets]
   stage: deploy
   environment:
     name: LKE-PROD
@@ -130,7 +142,7 @@ k8s-PROD-deploy:
     paths:
       - artifacts/prod-deployment.yaml
   before_script:
-    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  - !reference [.k8s-registry-login, before_script]
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
     - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
@@ -138,6 +150,7 @@ k8s-PROD-deploy:
     - bash job_scripts/k8s_deploy.sh
 
 k8s-edge-QA-deploy:
+  extends .deploy-common
   stage: deploy
   needs:
     - qa-upload-to-artifactory
@@ -145,7 +158,9 @@ k8s-edge-QA-deploy:
     - echo pass
 
 linode-QA-deploy:
-  <<: *linode-QA-deploy-connection
+  extends .deploy-common
+  secrets:
+    - !reference [.linode-QA-deploy-connection, secrets]
   stage: deploy
   needs:
     - job: podman-build-job
@@ -155,7 +170,8 @@ linode-QA-deploy:
   variables:
     PODMAN_USER: "ci-user"
     PODMAN_UID: "1000"
-  <<: *project-registry-login
+  before_script:
+  - !reference [.project-registry-login, before_script]
   script:
     - export JOB_ID=$CI_JOB_ID
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
@@ -164,7 +180,9 @@ linode-QA-deploy:
     - bash job_scripts/deploy.sh
 
 k8s-QA-deploy:
-  <<: *k8s-QA-deploy-connection
+  extends .deploy-common
+  secrets:
+    - !reference [.k8s-QA-deploy-connection, secrets]
   stage: deploy
   environment:
     name: LKE-QA
@@ -177,9 +195,8 @@ k8s-QA-deploy:
   variables:
     K8S_ENV: qa
   before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
+  - !reference [.project-registry-login, before_script]
+  - !reference [.k8s-registry-login, before_script]
   script:
     - export JOB_ID=$CI_JOB_ID
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
