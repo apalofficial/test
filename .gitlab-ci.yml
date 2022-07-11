@@ -8,8 +8,7 @@ stages:
 include: '/.gitlab-ci/secrets.yml'
 
 external-build-job:
-  secrets:
-  - !reference [.sqa-connection, secrets]
+  secrets: !reference [.sqa-connection, secrets]
   stage: build
   image: docker.io/alpine
   script:
@@ -29,14 +28,13 @@ podman-build-job:
   variables:
     BUILDAH_ISOLATION: chroot
   before_script:
-  - !reference [.project-registry-login, before_script]
+    - !reference [.project-registry-login, before_script]
   script:
     - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
 
 wait-for-completion:
-  secrets:
-  - !reference [.sqa-connection, secrets]
+  secrets: !reference [.sqa-connection, secrets]
   stage: build-wait
   needs:
     - job: external-build-job
@@ -50,8 +48,7 @@ wait-for-completion:
       - artifacts/job_id.txt
 
 scan-job:
-  secrets:
-  - !reference [.sqa-connection, secrets]
+  secrets: !reference [.sqa-connection, secrets]
   stage: test
   needs:
     - job: wait-for-completion
@@ -63,8 +60,7 @@ scan-job:
 
 prod-upload-to-artifactory:
   extends: .deploy-common
-  secrets:
-  - !reference [.sqa-connection, secrets]
+  secrets: !reference [.sqa-connection, secrets]
   stage: artifact-promote
   needs:
     - job: scan-job
@@ -79,8 +75,7 @@ prod-upload-to-artifactory:
 
 qa-upload-to-artifactory:
   extends: .deploy-common
-  secrets:
-  - !reference [.sqa-connection, secrets]
+  secrets: !reference [.sqa-connection, secrets]
   stage: artifact-promote
   needs:
     - job: podman-build-job
@@ -105,8 +100,7 @@ k8s-edge-PROD-deploy:
 
 linode-PROD-deploy:
   extends: .deploy-common
-  secrets:
-    - !reference [.linode-PROD-deploy-connection, secrets]
+  secrets: !reference [.linode-PROD-deploy-connection, secrets]
   stage: deploy
   environment:
     name: Linode-PROD
@@ -126,8 +120,7 @@ linode-PROD-deploy:
 
 k8s-PROD-deploy:
   extends: .deploy-common
-  secrets:
-    - !reference [.k8s-PROD-deploy-connection, secrets]
+  secrets: !reference [.k8s-PROD-deploy-connection, secrets]
   stage: deploy
   environment:
     name: LKE-PROD
@@ -159,8 +152,7 @@ k8s-edge-QA-deploy:
 
 linode-QA-deploy:
   extends: .deploy-common
-  secrets:
-    - !reference [.linode-QA-deploy-connection, secrets]
+  secrets: !reference [.linode-QA-deploy-connection, secrets]
   stage: deploy
   needs:
     - job: podman-build-job
@@ -181,8 +173,7 @@ linode-QA-deploy:
 
 k8s-QA-deploy:
   extends: .deploy-common
-  secrets:
-    - !reference [.k8s-QA-deploy-connection, secrets]
+  secrets: !reference [.k8s-QA-deploy-connection, secrets]
   stage: deploy
   environment:
     name: LKE-QA
