@@ -30,8 +30,10 @@ podman-build-job:
   before_script:
     - !reference [.project-registry-login, before_script]
   script:
-    - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_PIPELINE_IID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - mkdir -p artifacts
+    - echo $CI_JOB_ID > artifacts/podman_job_id.txt
   artifacts:
     paths:
       - artifacts/podman_job_id.txt
@@ -87,7 +89,7 @@ qa-upload-to-artifactory:
   before_script:
   - !reference [.project-registry-login, before_script]
   script:
-    - export JOB_ID=$CI_PIPELINE_IID
+    - export JOB_ID=$(cat artifacts/podman_job_id.txt)
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - podman pull $SOURCE_IMAGE
     - bash job_scripts/release-to-edge.sh
@@ -99,6 +101,7 @@ k8s-edge-PROD-deploy:
   stage: deploy
   when: manual
   needs:
+    - wait-for-completion
     - prod-upload-to-artifactory
   artifacts:
     paths:
@@ -106,7 +109,7 @@ k8s-edge-PROD-deploy:
   variables:
     K8S_ENV: edge-prod
   script:
-    - export JOB_ID=$CI_PIPELINE_IID
+    - export JOB_ID=$(cat artifacts/job_id.txt)
     - export REGISTRY_IMAGE="23.223.32.5/gitlab-$K8S_ENV/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/k8s-config-apply.sh
 
@@ -163,6 +166,7 @@ k8s-edge-QA-deploy:
   stage: deploy
   when: manual
   needs:
+    - podman-build-job
     - qa-upload-to-artifactory
   artifacts:
     paths:
@@ -170,7 +174,7 @@ k8s-edge-QA-deploy:
   variables:
     K8S_ENV: edge-qa
   script:
-    - export JOB_ID=$CI_PIPELINE_IID
+    - export JOB_ID=$(cat artifacts/podman_job_id.txt)
     - export REGISTRY_IMAGE="23.223.32.5/gitlab-$K8S_ENV/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/k8s-config-apply.sh
 
@@ -189,7 +193,7 @@ linode-QA-deploy:
   before_script:
   - !reference [.project-registry-login, before_script]
   script:
-    - export JOB_ID=$CI_PIPELINE_IID
+    - export JOB_ID=$(cat artifacts/podman_job_id.txt)
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
     - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $SOURCE_IMAGE 
@@ -213,7 +217,7 @@ k8s-QA-deploy:
   - !reference [.project-registry-login, before_script]
   - !reference [.k8s-registry-login, before_script]
   script:
-    - export JOB_ID=$CI_PIPELINE_IID
+    - export JOB_ID=$(cat artifacts/podman_job_id.txt)
     - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - export REGISTRY_IMAGE="registry.linode.lol/basic_connector/image:0.1-$JOB_ID"
     - podman pull $SOURCE_IMAGE
