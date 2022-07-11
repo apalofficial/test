@@ -99,6 +99,9 @@ k8s-edge-PROD-deploy:
   secrets:
     K8S_KUBECONFIG: !reference [.k8s-PROD-deploy-connection, secrets, K8S_KUBECONFIG]
   stage: deploy
+  environment:
+    name: LKE-Edge-PROD
+    url: https://k8s-edge-prod.akamai.lol
   when: manual
   needs:
     - wait-for-completion
@@ -164,6 +167,9 @@ k8s-edge-QA-deploy:
   secrets:
     K8S_KUBECONFIG: !reference [.k8s-QA-deploy-connection, secrets, K8S_KUBECONFIG]
   stage: deploy
+  environment:
+    name: LKE-Edge-QA
+    url: https://k8s-edge-qa.akamai.lol
   when: manual
   needs:
     - podman-build-job

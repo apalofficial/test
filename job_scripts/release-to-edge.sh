@@ -9,3 +9,28 @@ podman tag $SOURCE_IMAGE $REGISTRY_IMAGE
 podman push --cert-dir /tmp/registry-certs --tls-verify=false $REGISTRY_IMAGE
 rm -rf /tmp/registry-certs
 echo "Image uploaded to $REGISTRY_IMAGE"
+echo "Relevant AQL:"
+cat << EOF
+items.find({
+  "\$and": [
+    {
+      "\$or": [
+        {
+          "repo": {
+            "\$eq": "gitlab-edge-qa"
+          }
+        }
+      ]
+    },
+    {
+      "\$or": [
+        {
+          "path": {
+            "\$match": "basic_connector/image/0.1-$JOB_ID*"
+          }
+        }
+      ]
+    }
+  ]
+})
+EOF
