@@ -5,69 +5,7 @@ stages:
   - artifact-promote
   - deploy
 
-.project-registry-login: &project-registry-login
-  before_script:
-    - echo -e "[[registry]]\nlocation = \"$CI_REGISTRY\"\ninsecure = true" > /etc/containers/registries.conf.d/ci.conf
-    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-
-.sqa-connection: &sqa-connection
-  secrets: &testnet-secrets
-    TESTNET_CERT:
-      vault: corp/build/bbodiya/crt@secret
-      file: true
-    TESTNET_KEY:
-      vault: corp/build/bbodiya/key@secret
-      file: true
-
-.deploy-common: &deploy-common
-  image:
-    name: quay.io/podman/stable:v3.4.4
-    entrypoint: [""]
-  tags:
-    - cap_sys_admin
-
-.linode-QA-deploy-connection: &linode-QA-deploy-connection
-  <<: *deploy-common
-  secrets:
-    CI_DEPLOY_KEY:
-      vault: corp/build/hello-ci-ed/key@secret
-      file: true
-
-.linode-PROD-deploy-connection: &linode-PROD-deploy-connection
-  <<: *deploy-common
-  secrets:
-    <<: *testnet-secrets
-    CI_DEPLOY_KEY:
-      vault: corp/build/hello-cd-ed/key@secret
-      file: true
-
-.k8s-QA-deploy-connection: &k8s-QA-deploy-connection
-  <<: *deploy-common
-  secrets:
-    K8S_REGISTRY_USER:
-      vault: corp/build/k8s-registry/user@secret
-      file: false
-    K8S_REGISTRY_PASSWORD:
-      vault: corp/build/k8s-registry/password@secret
-      file: false
-    K8S_KUBECONFIG:
-      vault: corp/build/k8s-qa/kubeconfig@secret
-      file: true
-
-.k8s-PROD-deploy-connection: &k8s-PROD-deploy-connection
-  <<: *deploy-common
-  secrets:
-    <<: *testnet-secrets
-#TODO - move this to a different location to show secret separation
-    K8S_REGISTRY_USER:
-      vault: corp/build/k8s-registry/user@secret
-      file: false
-    K8S_REGISTRY_PASSWORD:
-      vault: corp/build/k8s-registry/password@secret
-      file: false
-    K8S_KUBECONFIG:
-      vault: corp/build/k8s-prod/kubeconfig@secret
-      file: true
+include: '/.gitlab-ci/secrets.yml'
 
 external-build-job:
   <<: *sqa-connection
@@ -120,12 +58,19 @@ scan-job:
     - bash job_scripts/upload-for-scan.sh
 
 prod-upload-to-artifactory:
+  <<: *deploy-common
+  <<: *sqa-connection
   stage: artifact-promote
   needs:
     - job: scan-job
     - job: wait-for-completion
+  variables:
+    K8S_ENV: prod
   script:
-    - echo pass
+    - export JOB_ID=$(cat artifacts/job_id.txt)
+    - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
+    - bash job_scripts/pull-from-artifactory.sh
+    - bash job_scripts/release-to-edge.sh
 
 qa-upload-to-artifactory:
   <<: *deploy-common
@@ -133,9 +78,14 @@ qa-upload-to-artifactory:
   stage: artifact-promote
   needs:
     - job: podman-build-job
+  variables:
+    K8S_ENV: qa
   <<: *project-registry-login
   script:
-    - bash job_scripts/qa-edge-deploy.sh
+    - export JOB_ID=$CI_JOB_ID
+    - export SOURCE_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - podman pull $SOURCE_IMAGE
+    - bash job_scripts/release-to-edge.sh
 
 k8s-edge-PROD-deploy:
   stage: deploy
@@ -160,6 +110,7 @@ linode-PROD-deploy:
     PODMAN_UID: "1001"
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
+    - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
     - bash job_scripts/pull-from-artifactory.sh
     - bash job_scripts/deploy.sh
 
@@ -182,8 +133,8 @@ k8s-PROD-deploy:
     - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
-    - bash job_scripts/pull-from-artifactory.sh
     - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
+    - bash job_scripts/pull-from-artifactory.sh
     - bash job_scripts/k8s_deploy.sh
 
 k8s-edge-QA-deploy:
@@ -208,7 +159,8 @@ linode-QA-deploy:
   script:
     - export JOB_ID=$CI_JOB_ID
     - podman pull $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
-    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID
+    - export SOURCE_IMAGE="docker.akamai.com/build-images-development/basic_connector/image:0.1-$JOB_ID"
+    - podman tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA $SOURCE_IMAGE 
     - bash job_scripts/deploy.sh
 
 k8s-QA-deploy:
