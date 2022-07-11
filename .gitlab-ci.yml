@@ -31,7 +31,7 @@ podman-build-job:
     - !reference [.project-registry-login, before_script]
   script:
     - export RT=$(date)
-    - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab --build-arg requestTime=${RT} -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - podman build --build-arg LISTEN_PORT=8080 --build-arg REGISTRY=docker.io --build-arg jobId=${CI_JOB_ID} --build-arg BUILD_SYSTEM=GitLab --build-arg requestTime="$RT" -f dockerfiles/deploy.Dockerfile -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
     - podman push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
     - mkdir -p artifacts
     - echo $CI_JOB_ID > artifacts/podman_job_id.txt
