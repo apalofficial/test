@@ -62,7 +62,7 @@ scan-job:
     - bash job_scripts/upload-for-scan.sh
 
 prod-upload-to-artifactory:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
   - !reference [.sqa-connection, secrets]
   stage: artifact-promote
@@ -78,7 +78,7 @@ prod-upload-to-artifactory:
     - bash job_scripts/release-to-edge.sh
 
 qa-upload-to-artifactory:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
   - !reference [.sqa-connection, secrets]
   stage: artifact-promote
@@ -95,7 +95,7 @@ qa-upload-to-artifactory:
     - bash job_scripts/release-to-edge.sh
 
 k8s-edge-PROD-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   stage: deploy
   needs:
     - prod-upload-to-artifactory
@@ -104,7 +104,7 @@ k8s-edge-PROD-deploy:
     - echo pass
 
 linode-PROD-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
     - !reference [.linode-PROD-deploy-connection, secrets]
   stage: deploy
@@ -125,7 +125,7 @@ linode-PROD-deploy:
     - bash job_scripts/deploy.sh
 
 k8s-PROD-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
     - !reference [.k8s-PROD-deploy-connection, secrets]
   stage: deploy
@@ -150,7 +150,7 @@ k8s-PROD-deploy:
     - bash job_scripts/k8s_deploy.sh
 
 k8s-edge-QA-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   stage: deploy
   needs:
     - qa-upload-to-artifactory
@@ -158,7 +158,7 @@ k8s-edge-QA-deploy:
     - echo pass
 
 linode-QA-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
     - !reference [.linode-QA-deploy-connection, secrets]
   stage: deploy
@@ -180,7 +180,7 @@ linode-QA-deploy:
     - bash job_scripts/deploy.sh
 
 k8s-QA-deploy:
-  extends .deploy-common
+  extends: .deploy-common
   secrets:
     - !reference [.k8s-QA-deploy-connection, secrets]
   stage: deploy
