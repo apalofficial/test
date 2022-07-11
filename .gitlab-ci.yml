@@ -58,6 +58,13 @@ stages:
   <<: *deploy-common
   secrets:
     <<: *testnet-secrets
+#TODO - move this to a different location to show secret separation
+    K8S_REGISTRY_USER:
+      vault: corp/build/k8s-registry/user@secret
+      file: false
+    K8S_REGISTRY_PASSWORD:
+      vault: corp/build/k8s-registry/password@secret
+      file: false
     K8S_KUBECONFIG:
       vault: corp/build/k8s-prod/kubeconfig@secret
       file: true
@@ -171,6 +178,8 @@ k8s-PROD-deploy:
   artifacts:
     paths:
       - artifacts/prod-deployment.yaml
+  before_script:
+    - podman login -u $K8S_REGISTRY_USER -p $K8S_REGISTRY_PASSWORD registry.linode.lol
   script:
     - export JOB_ID=$(cat artifacts/job_id.txt)
     - bash job_scripts/pull-from-artifactory.sh
