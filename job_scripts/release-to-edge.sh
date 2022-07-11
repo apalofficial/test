@@ -1,6 +1,6 @@
 #!/bin/bash
 set -exo pipefail
-echo "Scanning image for Job ID $CI_JOB_ID"
+echo "Pushing image to Artifactory repo for distribution to edge"
 mkdir /tmp/registry-certs
 cp $TESTNET_KEY /tmp/registry-certs/user.key
 cp $TESTNET_CERT /tmp/registry-certs/user.cert
