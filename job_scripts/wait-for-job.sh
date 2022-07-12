@@ -57,10 +57,19 @@ echo -e "curl cmd is:\n$JOBS_CURL_CMD"
 # Quit after 10 minutes
 COUNT=0
 job=$(bash -c "$JOBS_CURL_CMD")
-jobState=$(echo "$job" | jq -r '.[0].state')
 JOB_ID=$(echo "$job" | jq -r '.[0].jobId')
 
+while [[ ( "$JOB_ID" == "null" ) && ( $COUNT < $QUITTING_TIME ) ]]
+do
+	echo "Job is not queued yet. Waiting..."
+	sleep 10
+	job=$(bash -c "$JOBS_CURL_CMD")
+	JOB_ID=$(echo "$job" | jq -r '.[0].jobId')
+	let "COUNT=COUNT+1"
+done
+
 echo "$JOB_ID" > artifacts/job_id.txt
+jobState=$(echo "$job" | jq -r '.[0].state')
 
 set +x
 while [[ ( "$jobState" != "DONE" ) && ( $COUNT < $QUITTING_TIME ) ]]
