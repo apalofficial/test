@@ -17,7 +17,7 @@ items.find({
       "\$or": [
         {
           "repo": {
-            "\$eq": "gitlab-edge-qa"
+            "\$eq": "gitlab-edge-$K8S_ENV"
           }
         }
       ]
