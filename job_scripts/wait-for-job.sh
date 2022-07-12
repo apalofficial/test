@@ -87,4 +87,6 @@ else
 	exit 1
 fi
 
+sleep 30
+
 exit 0
