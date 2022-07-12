@@ -102,7 +102,7 @@ k8s-edge-PROD-deploy:
   stage: deploy
   environment:
     name: LKE-Edge-PROD
-    url: https://k8s-edge-prod.akamai.lol
+    url: https://k8s-edge-prod.linode.lol
   when: manual
   needs:
     - wait-for-completion
@@ -170,7 +170,7 @@ k8s-edge-QA-deploy:
   stage: deploy
   environment:
     name: LKE-Edge-QA
-    url: https://k8s-edge-qa.akamai.lol
+    url: https://k8s-edge-qa.linode.lol
   when: manual
   needs:
     - podman-build-job
